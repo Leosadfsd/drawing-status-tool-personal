@@ -63,6 +63,8 @@ self.addEventListener('message',event=>{
 self.addEventListener('fetch',event=>{
   const r=event.request;if(r.method!=='GET'||new URL(r.url).origin!==self.location.origin||new URL(r.url).pathname.endsWith('/offline-assets.json'))return;
   event.respondWith((async()=>{const s=await readState();if(r.mode==='navigate'){
+    // Explicit recovery entry loads the current program without deleting data or changing active offline resources.
+    if(new URL(r.url).searchParams.get('repair')==='login'){try{const fresh=await fetch(url('./index.html'),{cache:'no-store'});if(fresh.ok)return fresh;}catch{/* Keep the installed version available when offline. */}}
     if(s.active){const cached=await (await caches.open(PREFIX+s.active.version)).match(url('./index.html'));if(cached)return cached;}
     try{return await fetch(r);}catch{return new Response('请联网完成离线准备',{status:503});}
   }const names=(await caches.keys()).filter(n=>n.startsWith(PREFIX));if(s.active){const current=PREFIX+s.active.version;names.sort((a,b)=>Number(b===current)-Number(a===current));}for(const name of names){const cached=await (await caches.open(name)).match(r,{ignoreVary:true});if(cached)return cached;}return fetch(r);})());
